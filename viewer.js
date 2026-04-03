@@ -94,6 +94,69 @@
     mermaid.initialize({ startOnLoad: false, theme: 'default' });
   }
 
+  function sanitizeHtml(html) {
+    var template = document.createElement('template');
+    template.innerHTML = html;
+
+    var blockedTags = {
+      SCRIPT: true,
+      STYLE: true,
+      IFRAME: true,
+      OBJECT: true,
+      EMBED: true,
+      LINK: true,
+      META: true,
+      BASE: true,
+      FORM: true,
+      INPUT: true,
+      BUTTON: true,
+      TEXTAREA: true,
+      SELECT: true
+    };
+
+    var urlAttrs = { href: true, src: true, xlinkhref: true, formaction: true };
+    var walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
+    var nodesToRemove = [];
+    var node;
+
+    while ((node = walker.nextNode())) {
+      if (blockedTags[node.tagName]) {
+        nodesToRemove.push(node);
+        continue;
+      }
+
+      Array.prototype.slice.call(node.attributes).forEach(function (attr) {
+        var name = attr.name.toLowerCase();
+        var value = attr.value.trim();
+        var normalized = value.replace(/[\u0000-\u001F\u007F\s]+/g, '').toLowerCase();
+
+        if (name.startsWith('on')) {
+          node.removeAttribute(attr.name);
+          return;
+        }
+
+        if (urlAttrs[name] && (normalized.startsWith('javascript:') || normalized.startsWith('data:text/html'))) {
+          node.removeAttribute(attr.name);
+          return;
+        }
+
+        if (name === 'target' && value === '_blank') {
+          var rel = node.getAttribute('rel') || '';
+          if (!/\bnoopener\b/i.test(rel)) rel = (rel + ' noopener').trim();
+          if (!/\bnoreferrer\b/i.test(rel)) rel = (rel + ' noreferrer').trim();
+          node.setAttribute('rel', rel);
+        }
+      });
+    }
+
+    nodesToRemove.forEach(function (n) { n.remove(); });
+    return template.innerHTML;
+  }
+
+  function renderMarkdown(md) {
+    return sanitizeHtml(marked.parse(md));
+  }
+
   function renderMermaid() {
     if (!hasMermaid) return;
     document.querySelectorAll('pre code.language-mermaid').forEach(function (block) {
@@ -128,7 +191,7 @@
   }
 
   // Initial render
-  rendered.innerHTML = marked.parse(rawMd);
+  rendered.innerHTML = renderMarkdown(rawMd);
   renderMermaid();
   adjustContainerWidth();
 
@@ -162,7 +225,7 @@
       if (mode === 'split') {
         clearTimeout(splitTimer);
         splitTimer = setTimeout(function () {
-          rendered.innerHTML = marked.parse(cm.getValue());
+          rendered.innerHTML = renderMarkdown(cm.getValue());
           renderMermaid();
           adjustContainerWidth();
         }, 300);
@@ -174,7 +237,7 @@
 
   function showView() {
     mode = 'view';
-    rendered.innerHTML = marked.parse(getCurrentContent());
+    rendered.innerHTML = renderMarkdown(getCurrentContent());
     renderMermaid();
     rendered.style.display = 'block';
     rawView.style.display = 'none';
@@ -204,7 +267,7 @@
   function showSplit() {
     if (!cm) return;
     mode = 'split';
-    rendered.innerHTML = marked.parse(getCurrentContent());
+    rendered.innerHTML = renderMarkdown(getCurrentContent());
     renderMermaid();
     rendered.style.display = 'block';
     rawView.style.display = 'block';
