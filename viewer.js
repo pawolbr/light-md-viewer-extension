@@ -17,7 +17,8 @@
   // Check library availability
   var hasMarked = typeof marked !== 'undefined';
   var hasHljs = typeof hljs !== 'undefined';
-  var hasCodeMirror = typeof CodeMirror !== 'undefined';
+  var hasEditor = typeof LightMDEditor !== 'undefined';
+  var hasMermaid = typeof mermaid !== 'undefined';
 
   // DOM references
   var rendered = document.getElementById('rendered');
@@ -35,17 +36,32 @@
     return;
   }
 
-  // Configure marked.js
-  marked.setOptions({
-    highlight: function (code, lang) {
-      if (!hasHljs) return code;
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
-      }
-      return hljs.highlightAuto(code).value;
-    },
+  // Configure marked.js v16 — code renderer with highlight.js integration
+  marked.use({
     breaks: true,
-    gfm: true
+    gfm: true,
+    renderer: {
+      code: function (token) {
+        var text = token.text || '';
+        var lang = token.lang || '';
+
+        // Mermaid blocks: preserve for renderMermaid() to process
+        if (lang === 'mermaid') {
+          return '<pre><code class="language-mermaid">' + escapeForPre(text) + '</code></pre>';
+        }
+
+        // Syntax highlighting with highlight.js
+        var highlighted;
+        if (hasHljs && lang && hljs.getLanguage(lang)) {
+          highlighted = hljs.highlight(text, { language: lang }).value;
+        } else if (hasHljs) {
+          highlighted = hljs.highlightAuto(text).value;
+        } else {
+          highlighted = escapeForPre(text);
+        }
+        return '<pre><code class="hljs language-' + escapeAttr(lang) + '">' + highlighted + '</code></pre>';
+      }
+    }
   });
 
   // Add id attributes to headings for anchor navigation
@@ -64,23 +80,34 @@
     }
   });
 
-  // Initialize CodeMirror (if available)
-  var cm = null;
-  if (hasCodeMirror) {
-    cm = CodeMirror(document.getElementById('editorHost'), {
-      value: rawMd,
-      mode: 'gfm',
-      theme: 'default',
-      lineNumbers: true,
-      lineWrapping: true,
-      tabSize: 4,
-      indentWithTabs: false,
-      extraKeys: {
-        'Enter': 'newlineAndIndentContinueMarkdownList',
-        'Ctrl-S': function () { if (dirty) downloadFile(); },
-        'Cmd-S': function () { if (dirty) downloadFile(); }
+  // Initialize editor (CodeMirror 6 via LightMDEditor bundle)
+  var editor = null;
+  if (hasEditor) {
+    editor = LightMDEditor.create(
+      document.getElementById('editorHost'),
+      rawMd,
+      {
+        onSave: function () { if (dirty) downloadFile(); },
+        onChange: function (val) {
+          dirty = (val !== savedContent);
+          btnDownload.classList.toggle('unsaved', dirty);
+          if (dirty) {
+            saveStatus.textContent = 'Unsaved changes';
+            saveStatus.style.color = '#e65100';
+          } else {
+            saveStatus.textContent = '';
+          }
+          if (mode === 'split') {
+            clearTimeout(splitTimer);
+            splitTimer = setTimeout(function () {
+              rendered.innerHTML = renderMarkdown(editor.getValue());
+              renderMermaid();
+              adjustContainerWidth();
+            }, 300);
+          }
+        }
       }
-    });
+    );
   } else {
     btnEdit.disabled = true;
     btnSplit.disabled = true;
@@ -89,35 +116,36 @@
   }
 
   // Initialize mermaid (guard against load failure)
-  var hasMermaid = typeof mermaid !== 'undefined';
   if (hasMermaid) {
     mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
   }
+
+  // --- HTML sanitizer (allowlist-based) ---
+
+  // Allowlist of safe HTML tags
+  var allowedTags = {
+    A: true, ABBR: true, ARTICLE: true, ASIDE: true,
+    B: true, BLOCKQUOTE: true, BR: true,
+    CAPTION: true, CODE: true, COL: true, COLGROUP: true,
+    DD: true, DEL: true, DETAILS: true, DFN: true, DIV: true,
+    DL: true, DT: true, EM: true,
+    FIGCAPTION: true, FIGURE: true,
+    H1: true, H2: true, H3: true, H4: true, H5: true, H6: true,
+    HR: true, I: true, IMG: true, INS: true, KBD: true,
+    LI: true, MARK: true, OL: true, P: true, PRE: true,
+    Q: true, S: true, SAMP: true, SECTION: true,
+    SMALL: true, SPAN: true, STRONG: true, SUB: true,
+    SUMMARY: true, SUP: true,
+    TABLE: true, TBODY: true, TD: true, TFOOT: true, TH: true,
+    THEAD: true, TR: true, U: true, UL: true, VAR: true, WBR: true
+  };
+
+  var urlAttrs = { href: true, src: true, 'xlink:href': true, formaction: true, action: true };
 
   function sanitizeHtml(html) {
     var template = document.createElement('template');
     template.innerHTML = html;
 
-    // Allowlist of safe HTML tags (replaces fragile blocklist — Finding #2)
-    var allowedTags = {
-      A: true, ABBR: true, ARTICLE: true, ASIDE: true,
-      B: true, BLOCKQUOTE: true, BR: true,
-      CAPTION: true, CODE: true, COL: true, COLGROUP: true,
-      DD: true, DEL: true, DETAILS: true, DFN: true, DIV: true,
-      DL: true, DT: true, EM: true,
-      FIGCAPTION: true, FIGURE: true,
-      H1: true, H2: true, H3: true, H4: true, H5: true, H6: true,
-      HR: true, I: true, IMG: true, INS: true, KBD: true,
-      LI: true, MARK: true, OL: true, P: true, PRE: true,
-      Q: true, S: true, SAMP: true, SECTION: true,
-      SMALL: true, SPAN: true, STRONG: true, SUB: true,
-      SUMMARY: true, SUP: true,
-      TABLE: true, TBODY: true, TD: true, TFOOT: true, TH: true,
-      THEAD: true, TR: true, U: true, UL: true, VAR: true, WBR: true
-    };
-
-    // Fixed: use 'xlink:href' (with colon) to match actual attribute name (Finding #1)
-    var urlAttrs = { href: true, src: true, 'xlink:href': true, formaction: true, action: true };
     var walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
     var nodesToRemove = [];
     var node;
@@ -133,17 +161,19 @@
         var value = attr.value.trim();
         var normalized = value.replace(/[\u0000-\u001F\u007F\s]+/g, '').toLowerCase();
 
+        // Strip event handlers
         if (name.startsWith('on')) {
           node.removeAttribute(attr.name);
           return;
         }
 
+        // Validate URL attributes
         if (urlAttrs[name]) {
           if (normalized.startsWith('javascript:') || normalized.startsWith('vbscript:')) {
             node.removeAttribute(attr.name);
             return;
           }
-          // Block all data: URIs except safe raster image types (Finding #5)
+          // Block data: URIs except safe raster image types
           if (normalized.startsWith('data:') &&
               !/^data:image\/(png|jpeg|gif|webp|bmp)(;|,)/.test(normalized)) {
             node.removeAttribute(attr.name);
@@ -151,6 +181,7 @@
           }
         }
 
+        // Auto-add noopener noreferrer to target=_blank links
         if (name === 'target' && value === '_blank') {
           var rel = node.getAttribute('rel') || '';
           if (!/\bnoopener\b/i.test(rel)) rel = (rel + ' noopener').trim();
@@ -168,6 +199,20 @@
     return sanitizeHtml(marked.parse(md));
   }
 
+  // --- Utility ---
+
+  function escapeForPre(str) {
+    return str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(str) {
+    return str.replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // --- Mermaid ---
+
   function renderMermaid() {
     if (!hasMermaid) return;
     document.querySelectorAll('pre code.language-mermaid').forEach(function (block) {
@@ -180,7 +225,8 @@
     mermaid.run();
   }
 
-  // Expand container width when tables are wider than the default 900px
+  // --- Layout ---
+
   function adjustContainerWidth() {
     var container = document.querySelector('.container');
     if (container.classList.contains('split-mode')) {
@@ -192,21 +238,23 @@
     tables.forEach(function (t) {
       if (t.scrollWidth > maxTableWidth) maxTableWidth = t.scrollWidth;
     });
+    // 128px = card padding (40*2) + container padding (24*2)
     var needed = maxTableWidth + 128;
     container.style.maxWidth = (needed > 900 ? needed + 'px' : '');
   }
 
-  // Helper to get current markdown content
   function getCurrentContent() {
-    return cm ? cm.getValue() : rawMd;
+    return editor ? editor.getValue() : rawMd;
   }
 
-  // Initial render
+  // --- Initial render ---
+
   rendered.innerHTML = renderMarkdown(rawMd);
   renderMermaid();
   adjustContainerWidth();
 
-  // Handle anchor links
+  // --- Anchor links ---
+
   rendered.addEventListener('click', function (e) {
     var link = e.target.closest('a');
     if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
@@ -220,31 +268,12 @@
     }
   });
 
-  // Track changes + live preview in split mode
-  var splitTimer = null;
-  if (cm) {
-    cm.on('changes', function () {
-      var val = cm.getValue();
-      dirty = (val !== savedContent);
-      btnDownload.classList.toggle('unsaved', dirty);
-      if (dirty) {
-        saveStatus.textContent = 'Unsaved changes';
-        saveStatus.style.color = '#e65100';
-      } else {
-        saveStatus.textContent = '';
-      }
-      if (mode === 'split') {
-        clearTimeout(splitTimer);
-        splitTimer = setTimeout(function () {
-          rendered.innerHTML = renderMarkdown(cm.getValue());
-          renderMermaid();
-          adjustContainerWidth();
-        }, 300);
-      }
-    });
-  }
+  // --- Live preview timer ---
 
+  var splitTimer = null;
   var mode = 'view';
+
+  // --- Mode switching ---
 
   function showView() {
     mode = 'view';
@@ -262,7 +291,6 @@
   }
 
   function showEdit() {
-    if (!cm) return;
     mode = 'edit';
     rendered.style.display = 'none';
     rawView.style.display = 'block';
@@ -272,11 +300,10 @@
     btnSplit.classList.remove('active');
     btnCopyMd.classList.add('show');
     btnCopyHtml.classList.remove('show');
-    setTimeout(function () { cm.refresh(); cm.focus(); }, 10);
+    if (editor) setTimeout(function () { editor.refresh(); editor.focus(); }, 10);
   }
 
   function showSplit() {
-    if (!cm) return;
     mode = 'split';
     rendered.innerHTML = renderMarkdown(getCurrentContent());
     renderMermaid();
@@ -289,10 +316,11 @@
     btnCopyMd.classList.add('show');
     btnCopyHtml.classList.add('show');
     adjustContainerWidth();
-    setTimeout(function () { cm.refresh(); cm.focus(); }, 10);
+    if (editor) setTimeout(function () { editor.refresh(); editor.focus(); }, 10);
   }
 
-  // Export: Download as .md file
+  // --- Export functions ---
+
   function downloadFile() {
     var content = getCurrentContent();
     var blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
@@ -318,7 +346,6 @@
     });
   }
 
-  // Export: Copy raw markdown to clipboard
   function copyToClipboard() {
     navigator.clipboard.writeText(getCurrentContent()).then(function () {
       saveStatus.textContent = 'Copied to clipboard';
@@ -330,7 +357,6 @@
     });
   }
 
-  // Export: Copy rendered HTML to clipboard
   function copyHtml() {
     var html = rendered.innerHTML;
     var blob = new Blob([html], { type: 'text/html' });
@@ -346,10 +372,11 @@
     });
   }
 
-  // Button click handlers (using data-action attributes since onclick doesn't work from content scripts)
+  // --- Toolbar event handler ---
+
   document.querySelector('.toolbar').addEventListener('click', function (e) {
     var btn = e.target.closest('button');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     var action = btn.dataset.action;
     if (action === 'view') showView();
     else if (action === 'edit') showEdit();

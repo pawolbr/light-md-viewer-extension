@@ -28,7 +28,6 @@
   // Clear and rebuild the document
   document.title = filename + ' - Light MD Viewer';
 
-  // Clear head and body
   while (document.head.firstChild) document.head.removeChild(document.head.firstChild);
   while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
 
@@ -38,8 +37,8 @@
   // Helper to get extension resource URLs
   const getUrl = chrome.runtime.getURL;
 
-  // Inject CSS
-  const cssFiles = ['css/github-highlight.css', 'css/codemirror.css', 'css/viewer.css'];
+  // Inject CSS (CM6 injects its own styles via JS — no codemirror.css needed)
+  const cssFiles = ['css/github-highlight.css', 'css/viewer.css'];
   cssFiles.forEach(function (path) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -53,7 +52,7 @@
   meta.content = 'width=device-width, initial-scale=1.0';
   document.head.appendChild(meta);
 
-  // Content Security Policy: only allow scripts/styles from the extension bundle (Finding #3)
+  // Content Security Policy: only allow scripts/styles from the extension bundle
   const cspMeta = document.createElement('meta');
   cspMeta.httpEquiv = 'Content-Security-Policy';
   cspMeta.content = "default-src 'none'; script-src " + getUrl('/') +
@@ -83,16 +82,12 @@
     '</div>';
 
   // Load library scripts sequentially (order matters for dependencies)
+  // CM6 is a single bundle — replaces the 6 separate CM5 files
   var libs = [
     'lib/marked.min.js',
     'lib/highlight.min.js',
     'lib/mermaid.min.js',
-    'lib/codemirror.min.js',
-    'lib/codemirror-xml.min.js',
-    'lib/codemirror-markdown.min.js',
-    'lib/codemirror-overlay.min.js',
-    'lib/codemirror-gfm.min.js',
-    'lib/codemirror-continuelist.min.js',
+    'lib/codemirror-bundle.js',
     'viewer.js'
   ];
 
@@ -107,7 +102,7 @@
     };
     script.onerror = function () {
       console.error('Light MD Viewer: Failed to load ' + paths[index]);
-      // Continue loading remaining scripts
+      // Continue loading remaining scripts (viewer.js handles missing libs gracefully)
       loadScriptsSequentially(paths, index + 1);
     };
     document.body.appendChild(script);

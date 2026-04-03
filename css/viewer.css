@@ -207,18 +207,15 @@ body {
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
-.raw-view .CodeMirror {
+/* CodeMirror 6 uses .cm-editor instead of .CodeMirror */
+.raw-view .cm-editor {
   height: auto;
   min-height: 80vh;
-  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
-  font-size: 14px;
-  line-height: 1.6;
   border: none;
   border-radius: 8px;
-  padding: 8px 0;
 }
 
-.container.split-mode .raw-view .CodeMirror {
+.container.split-mode .raw-view .cm-editor {
   min-height: calc(100vh - 80px);
   height: calc(100vh - 80px);
 }
