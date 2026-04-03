@@ -2,13 +2,14 @@
  * Build script for Light MD Viewer Chrome Extension.
  *
  * 1. Bundles CodeMirror 6 (src/editor.js) into lib/codemirror-bundle.js
- * 2. Copies marked, highlight.js dist files from node_modules to lib/
- * 3. Downloads mermaid dist from CDN (kept out of npm to avoid transitive vulnerabilities)
- * 4. Copies highlight.js CSS theme to css/
+ * 2. Bundles marked.js (src/marked-global.js) into lib/marked.min.js
+ * 3. Bundles highlight.js (src/hljs-global.js) into lib/highlight.min.js
+ * 4. Downloads mermaid dist from CDN (kept out of npm to avoid transitive vulnerabilities)
+ * 5. Copies highlight.js CSS theme from node_modules to css/
  *
  * Usage:
  *   npm run build           # one-time build
- *   npm run build:watch     # rebuild on changes (CM6 only)
+ *   npm run build:watch     # rebuild on changes (bundles only)
  */
 
 import * as esbuild from 'esbuild';
@@ -31,27 +32,46 @@ const MERMAID_SHA256 = null; // Set after first download, then verify on subsequ
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
 });
 
-// --- Step 1: Bundle CodeMirror 6 ---
-const buildOptions = {
-  entryPoints: [join(__dirname, 'src', 'editor.js')],
+// --- Step 1: Bundle all JS libraries with esbuild ---
+
+const sharedOptions = {
   bundle: true,
   format: 'iife',
   minify: true,
   sourcemap: false,
   target: ['chrome110'],
-  outfile: join(__dirname, 'lib', 'codemirror-bundle.js'),
   logLevel: 'info',
 };
 
+const bundles = [
+  {
+    entryPoints: [join(__dirname, 'src', 'editor.js')],
+    outfile: join(__dirname, 'lib', 'codemirror-bundle.js'),
+    ...sharedOptions,
+  },
+  {
+    entryPoints: [join(__dirname, 'src', 'marked-global.js')],
+    outfile: join(__dirname, 'lib', 'marked.min.js'),
+    ...sharedOptions,
+  },
+  {
+    entryPoints: [join(__dirname, 'src', 'hljs-global.js')],
+    outfile: join(__dirname, 'lib', 'highlight.min.js'),
+    ...sharedOptions,
+  },
+];
+
 if (isWatch) {
-  const ctx = await esbuild.context(buildOptions);
-  await ctx.watch();
+  for (const opts of bundles) {
+    const ctx = await esbuild.context(opts);
+    await ctx.watch();
+  }
   console.log('Watching for changes...');
 } else {
-  await esbuild.build(buildOptions);
+  await Promise.all(bundles.map(opts => esbuild.build(opts)));
 }
 
-// --- Step 2: Copy library dist files from node_modules ---
+// --- Step 2: Copy highlight.js CSS theme ---
 
 function findFile(...candidates) {
   for (const c of candidates) {
@@ -61,31 +81,10 @@ function findFile(...candidates) {
   throw new Error('Could not find any of: ' + candidates.join(', '));
 }
 
-const fileCopies = [
-  {
-    src: findFile('marked/marked.min.js'),
-    dest: join(__dirname, 'lib', 'marked.min.js'),
-  },
-  {
-    src: findFile(
-      'highlight.js/lib/highlight.js',
-      '@aspect-build/highlight.js/highlight.min.js'
-    ),
-    dest: join(__dirname, 'lib', 'highlight.min.js'),
-  },
-  {
-    src: findFile(
-      'highlight.js/styles/github.min.css',
-      'highlight.js/styles/github.css'
-    ),
-    dest: join(__dirname, 'css', 'github-highlight.css'),
-  },
-];
-
-for (const { src, dest } of fileCopies) {
-  copyFileSync(src, dest);
-  console.log(`Copied: ${src} -> ${dest}`);
-}
+const cssSrc = findFile('highlight.js/styles/github.min.css', 'highlight.js/styles/github.css');
+const cssDest = join(__dirname, 'css', 'github-highlight.css');
+copyFileSync(cssSrc, cssDest);
+console.log(`Copied: ${cssSrc} -> ${cssDest}`);
 
 // --- Step 3: Download mermaid from CDN ---
 // Mermaid is downloaded separately to keep its large transitive dependency tree
@@ -95,7 +94,7 @@ for (const { src, dest } of fileCopies) {
 const mermaidDest = join(__dirname, 'lib', 'mermaid.min.js');
 
 if (existsSync(mermaidDest) && !process.argv.includes('--force')) {
-  console.log(`Mermaid ${MERMAID_VERSION} already downloaded, skipping (use --force to re-download)`);
+  console.log(`Mermaid ${MERMAID_VERSION} already present, skipping (use --force to re-download)`);
 } else {
   console.log(`Downloading mermaid ${MERMAID_VERSION} from CDN...`);
   const response = await fetch(MERMAID_URL);
