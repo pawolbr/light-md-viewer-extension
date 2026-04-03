@@ -1,0 +1,6 @@
+mermaid.min.js:344 Uncaught SyntaxError: Invalid or unexpected token
+viewer.js:73 Uncaught ReferenceError: mermaid is not defined
+    at viewer.js:73:3
+    at viewer.js:263:3
+README.md:1 Unsafe attempt to load URL file:///C:/Users/jorda/Desktop/README.md from frame with URL file:///C:/Users/jorda/Desktop/README.md. 'file:' URLs are treated as unique security origins.
+

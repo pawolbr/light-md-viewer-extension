@@ -1,0 +1,224 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background: #f5f5f5;
+  color: #212121;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.toolbar .filename {
+  font-weight: 600;
+  font-size: 14px;
+  color: #424242;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar .path {
+  font-size: 11px;
+  color: #9e9e9e;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar button {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #424242;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.toolbar button:hover {
+  background: #e8e8e8;
+}
+
+.toolbar button.active {
+  background: #1976d2;
+  color: white;
+  border-color: #1565c0;
+}
+
+.toolbar button.save-btn {
+  background: #2e7d32;
+  color: white;
+  border-color: #1b5e20;
+  display: none;
+}
+
+.toolbar button.save-btn:hover {
+  background: #388e3c;
+}
+
+.toolbar button.save-btn.unsaved {
+  display: inline-block;
+}
+
+.toolbar button.export-btn {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #424242;
+  display: none;
+}
+
+.toolbar button.export-btn:hover {
+  background: #e8e8e8;
+}
+
+.toolbar button.export-btn.show {
+  display: inline-block;
+}
+
+.toolbar .save-status {
+  font-size: 12px;
+  color: #9e9e9e;
+  white-space: nowrap;
+}
+
+.container {
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+/* Rendered view */
+.rendered {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 32px 40px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  line-height: 1.7;
+}
+
+.rendered h1 { font-size: 2em; margin: 0.8em 0 0.4em; padding-bottom: 0.3em; border-bottom: 1px solid #eee; }
+.rendered h2 { font-size: 1.5em; margin: 0.8em 0 0.4em; padding-bottom: 0.2em; border-bottom: 1px solid #eee; }
+.rendered h3 { font-size: 1.25em; margin: 0.8em 0 0.4em; }
+.rendered h4 { font-size: 1.1em; margin: 0.8em 0 0.4em; }
+.rendered p { margin: 0.6em 0; }
+.rendered ul, .rendered ol { margin: 0.5em 0; padding-left: 2em; }
+.rendered li { margin: 0.25em 0; }
+.rendered blockquote {
+  border-left: 4px solid #1976d2;
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  background: #f8f9fa;
+  color: #555;
+}
+.rendered code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+}
+.rendered pre {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.rendered pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+.rendered table {
+  border-collapse: collapse;
+  width: auto;
+  min-width: 100%;
+  margin: 1em 0;
+}
+.rendered th, .rendered td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+.rendered th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+.rendered tr:nth-child(even) {
+  background: #fafafa;
+}
+.rendered img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+.rendered a {
+  color: #1976d2;
+  text-decoration: none;
+}
+.rendered a:hover {
+  text-decoration: underline;
+}
+.rendered hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 1.5em 0;
+}
+
+/* Split view */
+.container.split-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 100%;
+}
+
+.container.split-mode .rendered {
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.container.split-mode .raw-view {
+  display: block !important;
+}
+
+.container.split-mode .raw-view textarea {
+  min-height: calc(100vh - 80px);
+}
+
+/* Raw/edit view */
+.raw-view {
+  display: none;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.raw-view .CodeMirror {
+  height: auto;
+  min-height: 80vh;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 0;
+}
+
+.container.split-mode .raw-view .CodeMirror {
+  min-height: calc(100vh - 80px);
+  height: calc(100vh - 80px);
+}
