@@ -91,36 +91,39 @@
   // Initialize mermaid (guard against load failure)
   var hasMermaid = typeof mermaid !== 'undefined';
   if (hasMermaid) {
-    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+    mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
   }
 
   function sanitizeHtml(html) {
     var template = document.createElement('template');
     template.innerHTML = html;
 
-    var blockedTags = {
-      SCRIPT: true,
-      STYLE: true,
-      IFRAME: true,
-      OBJECT: true,
-      EMBED: true,
-      LINK: true,
-      META: true,
-      BASE: true,
-      FORM: true,
-      INPUT: true,
-      BUTTON: true,
-      TEXTAREA: true,
-      SELECT: true
+    // Allowlist of safe HTML tags (replaces fragile blocklist — Finding #2)
+    var allowedTags = {
+      A: true, ABBR: true, ARTICLE: true, ASIDE: true,
+      B: true, BLOCKQUOTE: true, BR: true,
+      CAPTION: true, CODE: true, COL: true, COLGROUP: true,
+      DD: true, DEL: true, DETAILS: true, DFN: true, DIV: true,
+      DL: true, DT: true, EM: true,
+      FIGCAPTION: true, FIGURE: true,
+      H1: true, H2: true, H3: true, H4: true, H5: true, H6: true,
+      HR: true, I: true, IMG: true, INS: true, KBD: true,
+      LI: true, MARK: true, OL: true, P: true, PRE: true,
+      Q: true, S: true, SAMP: true, SECTION: true,
+      SMALL: true, SPAN: true, STRONG: true, SUB: true,
+      SUMMARY: true, SUP: true,
+      TABLE: true, TBODY: true, TD: true, TFOOT: true, TH: true,
+      THEAD: true, TR: true, U: true, UL: true, VAR: true, WBR: true
     };
 
-    var urlAttrs = { href: true, src: true, xlinkhref: true, formaction: true };
+    // Fixed: use 'xlink:href' (with colon) to match actual attribute name (Finding #1)
+    var urlAttrs = { href: true, src: true, 'xlink:href': true, formaction: true, action: true };
     var walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
     var nodesToRemove = [];
     var node;
 
     while ((node = walker.nextNode())) {
-      if (blockedTags[node.tagName]) {
+      if (!allowedTags[node.tagName]) {
         nodesToRemove.push(node);
         continue;
       }
@@ -135,9 +138,17 @@
           return;
         }
 
-        if (urlAttrs[name] && (normalized.startsWith('javascript:') || normalized.startsWith('data:text/html'))) {
-          node.removeAttribute(attr.name);
-          return;
+        if (urlAttrs[name]) {
+          if (normalized.startsWith('javascript:') || normalized.startsWith('vbscript:')) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          // Block all data: URIs except safe raster image types (Finding #5)
+          if (normalized.startsWith('data:') &&
+              !/^data:image\/(png|jpeg|gif|webp|bmp)(;|,)/.test(normalized)) {
+            node.removeAttribute(attr.name);
+            return;
+          }
         }
 
         if (name === 'target' && value === '_blank') {

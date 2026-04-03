@@ -53,6 +53,15 @@
   meta.content = 'width=device-width, initial-scale=1.0';
   document.head.appendChild(meta);
 
+  // Content Security Policy: only allow scripts/styles from the extension bundle (Finding #3)
+  const cspMeta = document.createElement('meta');
+  cspMeta.httpEquiv = 'Content-Security-Policy';
+  cspMeta.content = "default-src 'none'; script-src " + getUrl('/') +
+    "; style-src " + getUrl('/') + " 'unsafe-inline'" +
+    "; img-src file: data: blob:" +
+    "; font-src " + getUrl('/') + ";";
+  document.head.appendChild(cspMeta);
+
   // Build toolbar and container HTML
   document.body.innerHTML =
     '<div class="toolbar">' +
