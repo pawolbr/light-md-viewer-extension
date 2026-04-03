@@ -3,9 +3,25 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'download') {
+    if (!message.url || typeof message.url !== 'string' || !message.url.startsWith('blob:')) {
+      sendResponse({ ok: false, error: 'Invalid download URL' });
+      return false;
+    }
+
+    if (!message.filename || typeof message.filename !== 'string') {
+      sendResponse({ ok: false, error: 'Invalid filename' });
+      return false;
+    }
+
+    const safeFilename = message.filename.replace(/[\\/:*?"<>|]/g, '_').replace(/^\.+/, '');
+    if (!safeFilename) {
+      sendResponse({ ok: false, error: 'Invalid filename' });
+      return false;
+    }
+
     chrome.downloads.download({
       url: message.url,
-      filename: message.filename,
+      filename: safeFilename,
       saveAs: true
     }, (downloadId) => {
       if (chrome.runtime.lastError) {

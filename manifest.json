@@ -12,10 +12,7 @@
     "downloads"
   ],
   "host_permissions": [
-    "file:///*",
-    "*://*/*.md",
-    "*://*/*.markdown",
-    "*://*/*.mdown"
+    "file:///*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -25,10 +22,7 @@
       "matches": [
         "file:///*/*.md",
         "file:///*/*.markdown",
-        "file:///*/*.mdown",
-        "*://*/*.md",
-        "*://*/*.markdown",
-        "*://*/*.mdown"
+        "file:///*/*.mdown"
       ],
       "js": ["content.js"],
       "run_at": "document_end"
@@ -41,7 +35,7 @@
         "css/*",
         "lib/*"
       ],
-      "matches": ["file:///*", "*://*/*.md", "*://*/*.markdown", "*://*/*.mdown"]
+      "matches": ["file:///*"]
     }
   ]
 }
