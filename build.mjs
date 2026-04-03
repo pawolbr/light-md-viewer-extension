@@ -2,21 +2,28 @@
  * Build script for Light MD Viewer Chrome Extension.
  *
  * 1. Bundles CodeMirror 6 (src/editor.js) into lib/codemirror-bundle.js
- * 2. Copies marked, highlight.js, mermaid dist files from node_modules to lib/
- * 3. Copies highlight.js CSS theme to css/
+ * 2. Copies marked, highlight.js dist files from node_modules to lib/
+ * 3. Downloads mermaid dist from CDN (kept out of npm to avoid transitive vulnerabilities)
+ * 4. Copies highlight.js CSS theme to css/
  *
  * Usage:
  *   npm run build           # one-time build
- *   npm run build:watch     # rebuild on changes
+ *   npm run build:watch     # rebuild on changes (CM6 only)
  */
 
 import * as esbuild from 'esbuild';
-import { copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { copyFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createHash } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
+
+// Mermaid version and integrity hash (update both when upgrading)
+const MERMAID_VERSION = '11.4.1';
+const MERMAID_URL = `https://cdnjs.cloudflare.com/ajax/libs/mermaid/${MERMAID_VERSION}/mermaid.min.js`;
+const MERMAID_SHA256 = null; // Set after first download, then verify on subsequent builds
 
 // Ensure output directories exist
 ['lib', 'css'].forEach(dir => {
@@ -60,7 +67,6 @@ const fileCopies = [
     dest: join(__dirname, 'lib', 'marked.min.js'),
   },
   {
-    // highlight.js browser build
     src: findFile(
       'highlight.js/lib/highlight.js',
       '@aspect-build/highlight.js/highlight.min.js'
@@ -68,26 +74,55 @@ const fileCopies = [
     dest: join(__dirname, 'lib', 'highlight.min.js'),
   },
   {
-    // highlight.js github theme CSS
     src: findFile(
       'highlight.js/styles/github.min.css',
       'highlight.js/styles/github.css'
     ),
     dest: join(__dirname, 'css', 'github-highlight.css'),
   },
-  {
-    // mermaid browser build
-    src: findFile(
-      'mermaid/dist/mermaid.min.js',
-      'mermaid/dist/mermaid.js'
-    ),
-    dest: join(__dirname, 'lib', 'mermaid.min.js'),
-  },
 ];
 
 for (const { src, dest } of fileCopies) {
   copyFileSync(src, dest);
   console.log(`Copied: ${src} -> ${dest}`);
+}
+
+// --- Step 3: Download mermaid from CDN ---
+// Mermaid is downloaded separately to keep its large transitive dependency tree
+// (chevrotain -> lodash-es with known vulnerabilities) out of npm audit scope.
+// The pre-built dist file has no runtime dependency on lodash-es.
+
+const mermaidDest = join(__dirname, 'lib', 'mermaid.min.js');
+
+if (existsSync(mermaidDest) && !process.argv.includes('--force')) {
+  console.log(`Mermaid ${MERMAID_VERSION} already downloaded, skipping (use --force to re-download)`);
+} else {
+  console.log(`Downloading mermaid ${MERMAID_VERSION} from CDN...`);
+  const response = await fetch(MERMAID_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to download mermaid: ${response.status} ${response.statusText}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  // Verify integrity if hash is set
+  const hash = createHash('sha256').update(buffer).digest('hex');
+  if (MERMAID_SHA256 && hash !== MERMAID_SHA256) {
+    throw new Error(
+      `Mermaid integrity check failed!\n` +
+      `  Expected: ${MERMAID_SHA256}\n` +
+      `  Got:      ${hash}\n` +
+      `  This could indicate a compromised CDN. Do not use this file.`
+    );
+  }
+
+  writeFileSync(mermaidDest, buffer);
+  console.log(`Downloaded mermaid ${MERMAID_VERSION} (${(buffer.length / 1024).toFixed(0)} KB)`);
+  console.log(`  SHA-256: ${hash}`);
+
+  if (!MERMAID_SHA256) {
+    console.log(`\n  NOTE: Pin this hash in build.mjs for future integrity verification:`);
+    console.log(`  const MERMAID_SHA256 = '${hash}';`);
+  }
 }
 
 console.log('\nBuild complete. Extension is ready to load from this directory.');
