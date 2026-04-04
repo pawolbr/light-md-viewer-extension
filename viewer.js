@@ -31,7 +31,17 @@
   var btnDownload = document.getElementById('btnDownload');
   var btnCopyMd = document.getElementById('btnCopyMd');
   var btnCopyHtml = document.getElementById('btnCopyHtml');
+  var btnDarkMode = document.getElementById('btnDarkMode');
   var saveStatus = document.getElementById('saveStatus');
+  btnSave.disabled = true;
+
+  // Dark mode: restore from localStorage or default to OS preference
+  var darkPref = localStorage.getItem('light-md-dark');
+  var isDark = darkPref !== null ? darkPref === '1' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (isDark) {
+    document.body.classList.add('dark');
+    btnDarkMode.textContent = 'Light';
+  }
 
   if (!hasMarked) {
     rendered.innerHTML = '<p style="color:#c62828;padding:2em;">Failed to load markdown parser. Please reload the extension.</p>';
@@ -91,8 +101,7 @@
       {
         onChange: function (val) {
           dirty = (val !== savedContent);
-          btnSave.classList.toggle('unsaved', dirty);
-          btnDownload.classList.toggle('unsaved', dirty);
+          btnSave.disabled = !dirty;
           if (dirty) {
             saveStatus.textContent = 'Unsaved changes';
             saveStatus.style.color = '#e65100';
@@ -120,7 +129,7 @@
   // Initialize mermaid (guard against load failure)
   try {
     if (hasMermaid) {
-      mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+      mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default', securityLevel: 'strict' });
     }
   } catch (e) {
     console.error('Light MD Viewer: mermaid init failed:', e);
@@ -158,7 +167,14 @@
     var node;
 
     while ((node = walker.nextNode())) {
-      if (!allowedTags[node.tagName]) {
+      // Allow INPUT only as a disabled checkbox (GFM task lists)
+      if (node.tagName === 'INPUT') {
+        if (node.getAttribute('type') !== 'checkbox') {
+          nodesToRemove.push(node);
+          continue;
+        }
+        node.setAttribute('disabled', '');
+      } else if (!allowedTags[node.tagName]) {
         nodesToRemove.push(node);
         continue;
       }
@@ -209,7 +225,7 @@
   // --- Utility ---
 
   function escapeForPre(str) {
-    return str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function escapeAttr(str) {
@@ -297,8 +313,6 @@
     btnView.classList.add('active');
     btnEdit.classList.remove('active');
     btnSplit.classList.remove('active');
-    btnCopyMd.classList.remove('show');
-    btnCopyHtml.classList.remove('show');
     adjustContainerWidth();
   }
 
@@ -310,8 +324,6 @@
     btnEdit.classList.add('active');
     btnView.classList.remove('active');
     btnSplit.classList.remove('active');
-    btnCopyMd.classList.add('show');
-    btnCopyHtml.classList.remove('show');
     if (editor) setTimeout(function () { editor.refresh(); editor.focus(); }, 10);
   }
 
@@ -325,8 +337,6 @@
     btnSplit.classList.add('active');
     btnView.classList.remove('active');
     btnEdit.classList.remove('active');
-    btnCopyMd.classList.add('show');
-    btnCopyHtml.classList.add('show');
     adjustContainerWidth();
     if (editor) setTimeout(function () { editor.refresh(); editor.focus(); }, 10);
   }
@@ -359,8 +369,7 @@
     .then(function () {
       savedContent = content;
       dirty = false;
-      btnSave.classList.remove('unsaved');
-      btnDownload.classList.remove('unsaved');
+      btnSave.disabled = true;
       saveStatus.textContent = 'Saved';
       saveStatus.style.color = '#2e7d32';
       setTimeout(function () { if (!dirty) saveStatus.textContent = ''; }, 2000);
@@ -389,8 +398,7 @@
       if (response && response.ok) {
         savedContent = content;
         dirty = false;
-        btnSave.classList.remove('unsaved');
-        btnDownload.classList.remove('unsaved');
+        btnSave.disabled = true;
         saveStatus.textContent = 'Downloaded';
         saveStatus.style.color = '#2e7d32';
         setTimeout(function () { if (!dirty) saveStatus.textContent = ''; }, 2000);
@@ -435,6 +443,18 @@
     });
   }
 
+  // --- Dark mode toggle ---
+
+  function toggleDark() {
+    var dark = document.body.classList.toggle('dark');
+    btnDarkMode.textContent = dark ? 'Light' : 'Dark';
+    localStorage.setItem('light-md-dark', dark ? '1' : '0');
+    if (hasMermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict' });
+      renderMermaid();
+    }
+  }
+
   // --- Toolbar event handler ---
 
   document.querySelector('.toolbar').addEventListener('click', function (e) {
@@ -448,6 +468,7 @@
     else if (action === 'download') downloadFile();
     else if (action === 'copyMd') copyToClipboard();
     else if (action === 'copyHtml') copyHtml();
+    else if (action === 'toggleDark') toggleDark();
   });
 
   // Warn before leaving with unsaved changes

@@ -46,6 +46,11 @@
     document.head.appendChild(link);
   });
 
+  // Force UTF-8 encoding so scripts with Unicode (e.g. CodeMirror regex ranges) parse correctly
+  const charset = document.createElement('meta');
+  charset.setAttribute('charset', 'utf-8');
+  document.head.insertBefore(charset, document.head.firstChild);
+
   // Add viewport meta
   const meta = document.createElement('meta');
   meta.name = 'viewport';
@@ -57,23 +62,30 @@
   cspMeta.httpEquiv = 'Content-Security-Policy';
   cspMeta.content = "default-src 'none'; script-src " + getUrl('/') +
     "; style-src " + getUrl('/') + " 'unsafe-inline'" +
-    "; img-src file: data: blob:" +
+    "; img-src file: data: blob: https:" +
     "; font-src " + getUrl('/') + ";";
   document.head.appendChild(cspMeta);
 
   // Build toolbar and container HTML
   document.body.innerHTML =
     '<div class="toolbar">' +
-      '<div class="filename">' + escapeHtml(filename) + '</div>' +
-      '<div class="path" title="' + escapeHtml(folder) + '">' + escapeHtml(folder) + '</div>' +
-      '<button id="btnView" class="active" data-action="view">View</button>' +
-      '<button id="btnEdit" data-action="edit">Edit</button>' +
-      '<button id="btnSplit" data-action="split">Split</button>' +
-      '<button id="btnSave" class="save-primary" data-action="save">Save</button>' +
-      '<button id="btnDownload" class="save-btn" data-action="download">Download</button>' +
-      '<button id="btnCopyMd" class="export-btn" data-action="copyMd">Copy MD</button>' +
-      '<button id="btnCopyHtml" class="export-btn" data-action="copyHtml">Copy HTML</button>' +
+      '<div class="toolbar-left">' +
+        '<div class="filename">' + escapeHtml(filename) + '</div>' +
+        '<div class="path" title="' + escapeHtml(folder) + '">' + escapeHtml(folder) + '</div>' +
+      '</div>' +
+      '<div class="toolbar-center">' +
+        '<button id="btnView" class="active" data-action="view">View</button>' +
+        '<button id="btnEdit" data-action="edit">Edit</button>' +
+        '<button id="btnSplit" data-action="split">Split</button>' +
+      '</div>' +
       '<span id="saveStatus" class="save-status"></span>' +
+      '<div class="toolbar-right">' +
+        '<button id="btnSave" class="save-primary" data-action="save">Save</button>' +
+        '<button id="btnDownload" class="save-btn" data-action="download">Download</button>' +
+        '<button id="btnCopyHtml" class="export-btn" data-action="copyHtml">Copy HTML</button>' +
+        '<button id="btnCopyMd" class="export-btn" data-action="copyMd">Copy MD</button>' +
+        '<button id="btnDarkMode" class="theme-toggle" data-action="toggleDark">Dark</button>' +
+      '</div>' +
     '</div>' +
     '<div class="container">' +
       '<div class="rendered" id="rendered"></div>' +
@@ -116,6 +128,7 @@
   function loadScriptsSequentially(paths, index) {
     if (index >= paths.length) return;
     var script = document.createElement('script');
+    script.charset = 'utf-8';
     script.src = getUrl(paths[index]);
     script.onload = function () {
       loadScriptsSequentially(paths, index + 1);
