@@ -59,6 +59,21 @@ body {
   border-color: #1565c0;
 }
 
+.toolbar button.save-primary {
+  background: #1976d2;
+  color: white;
+  border-color: #1565c0;
+  display: none;
+}
+
+.toolbar button.save-primary:hover {
+  background: #1e88e5;
+}
+
+.toolbar button.save-primary.unsaved {
+  display: inline-block;
+}
+
 .toolbar button.save-btn {
   background: #2e7d32;
   color: white;

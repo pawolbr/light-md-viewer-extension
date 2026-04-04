@@ -69,6 +69,7 @@
       '<button id="btnView" class="active" data-action="view">View</button>' +
       '<button id="btnEdit" data-action="edit">Edit</button>' +
       '<button id="btnSplit" data-action="split">Split</button>' +
+      '<button id="btnSave" class="save-primary" data-action="save">Save</button>' +
       '<button id="btnDownload" class="save-btn" data-action="download">Download</button>' +
       '<button id="btnCopyMd" class="export-btn" data-action="copyMd">Copy MD</button>' +
       '<button id="btnCopyHtml" class="export-btn" data-action="copyHtml">Copy HTML</button>' +
@@ -92,6 +93,25 @@
   ];
 
   loadScriptsSequentially(libs, 0);
+
+  // Relay download requests from main world (viewer.js) to background service worker.
+  // viewer.js runs in the main world where chrome.runtime is unavailable,
+  // so it uses window.postMessage to reach this content script instead.
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) return;
+    if (!event.data || event.data.type !== '__light-md-download') return;
+
+    chrome.runtime.sendMessage({
+      action: 'download',
+      url: event.data.url,
+      filename: event.data.filename
+    }, function (response) {
+      window.postMessage({
+        type: '__light-md-download-response',
+        response: response || { ok: false, error: chrome.runtime.lastError && chrome.runtime.lastError.message }
+      }, '*');
+    });
+  });
 
   function loadScriptsSequentially(paths, index) {
     if (index >= paths.length) return;

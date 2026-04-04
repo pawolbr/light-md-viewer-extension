@@ -13,6 +13,7 @@
 
   var savedContent = rawMd;
   var dirty = false;
+  var fileHandle = null;
 
   // Check library availability
   var hasMarked = typeof marked !== 'undefined';
@@ -26,6 +27,7 @@
   var btnView = document.getElementById('btnView');
   var btnEdit = document.getElementById('btnEdit');
   var btnSplit = document.getElementById('btnSplit');
+  var btnSave = document.getElementById('btnSave');
   var btnDownload = document.getElementById('btnDownload');
   var btnCopyMd = document.getElementById('btnCopyMd');
   var btnCopyHtml = document.getElementById('btnCopyHtml');
@@ -87,9 +89,9 @@
       document.getElementById('editorHost'),
       rawMd,
       {
-        onSave: function () { if (dirty) downloadFile(); },
         onChange: function (val) {
           dirty = (val !== savedContent);
+          btnSave.classList.toggle('unsaved', dirty);
           btnDownload.classList.toggle('unsaved', dirty);
           if (dirty) {
             saveStatus.textContent = 'Unsaved changes';
@@ -116,8 +118,13 @@
   }
 
   // Initialize mermaid (guard against load failure)
-  if (hasMermaid) {
-    mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+  try {
+    if (hasMermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+    }
+  } catch (e) {
+    console.error('Light MD Viewer: mermaid init failed:', e);
+    hasMermaid = false;
   }
 
   // --- HTML sanitizer (allowlist-based) ---
@@ -249,9 +256,14 @@
 
   // --- Initial render ---
 
-  rendered.innerHTML = renderMarkdown(rawMd);
-  renderMermaid();
-  adjustContainerWidth();
+  try {
+    rendered.innerHTML = renderMarkdown(rawMd);
+    renderMermaid();
+    adjustContainerWidth();
+  } catch (e) {
+    console.error('Light MD Viewer: render error:', e);
+    rendered.innerHTML = '<p style="color:#c62828;padding:2em;">Error rendering markdown. Check console for details.</p>';
+  }
 
   // --- Anchor links ---
 
@@ -321,19 +333,63 @@
 
   // --- Export functions ---
 
+  function saveFile() {
+    var content = getCurrentContent();
+
+    if (typeof window.showSaveFilePicker !== 'function') {
+      // Fallback: use download if File System Access API is unavailable
+      downloadFile();
+      return;
+    }
+
+    (fileHandle ? Promise.resolve(fileHandle) : window.showSaveFilePicker({
+      suggestedName: currentFilename,
+      types: [{
+        description: 'Markdown',
+        accept: { 'text/markdown': ['.md', '.markdown', '.mdown'] }
+      }]
+    }))
+    .then(function (handle) {
+      fileHandle = handle;
+      return handle.createWritable();
+    })
+    .then(function (writable) {
+      return writable.write(content).then(function () { return writable.close(); });
+    })
+    .then(function () {
+      savedContent = content;
+      dirty = false;
+      btnSave.classList.remove('unsaved');
+      btnDownload.classList.remove('unsaved');
+      saveStatus.textContent = 'Saved';
+      saveStatus.style.color = '#2e7d32';
+      setTimeout(function () { if (!dirty) saveStatus.textContent = ''; }, 2000);
+    })
+    .catch(function (e) {
+      if (e.name === 'AbortError') return; // User cancelled picker
+      // If a stale handle failed, reset so next save shows picker again
+      fileHandle = null;
+      console.error('Light MD Viewer: save failed:', e);
+      saveStatus.textContent = 'Save failed';
+      saveStatus.style.color = '#c62828';
+    });
+  }
+
   function downloadFile() {
     var content = getCurrentContent();
     var blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     var url = URL.createObjectURL(blob);
 
-    chrome.runtime.sendMessage({
-      action: 'download',
-      url: url,
-      filename: currentFilename
-    }, function (response) {
+    function onResponse(event) {
+      if (event.source !== window) return;
+      if (!event.data || event.data.type !== '__light-md-download-response') return;
+      window.removeEventListener('message', onResponse);
+
+      var response = event.data.response;
       if (response && response.ok) {
         savedContent = content;
         dirty = false;
+        btnSave.classList.remove('unsaved');
         btnDownload.classList.remove('unsaved');
         saveStatus.textContent = 'Downloaded';
         saveStatus.style.color = '#2e7d32';
@@ -343,7 +399,14 @@
         saveStatus.style.color = '#c62828';
       }
       URL.revokeObjectURL(url);
-    });
+    }
+
+    window.addEventListener('message', onResponse);
+    window.postMessage({
+      type: '__light-md-download',
+      url: url,
+      filename: currentFilename
+    }, '*');
   }
 
   function copyToClipboard() {
@@ -381,6 +444,7 @@
     if (action === 'view') showView();
     else if (action === 'edit') showEdit();
     else if (action === 'split') showSplit();
+    else if (action === 'save') saveFile();
     else if (action === 'download') downloadFile();
     else if (action === 'copyMd') copyToClipboard();
     else if (action === 'copyHtml') copyHtml();
@@ -391,6 +455,15 @@
     if (dirty) {
       e.preventDefault();
       e.returnValue = '';
+    }
+  });
+
+  // Global Ctrl+S / Cmd+S handler — prevents Chrome's native "Save Page As"
+  // and triggers the extension's download instead (works outside the editor too)
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (dirty) saveFile();
     }
   });
 })();

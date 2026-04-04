@@ -27,7 +27,8 @@ Mermaid is kept out of npm to avoid its transitive dependency chain (`chevrotain
 
 ## Build process
 
-```cmd
+```
+cmd
 npm install        # install npm dependencies (0 vulnerabilities expected)
 npm run build      # bundle CM6 + marked + hljs, download mermaid, copy CSS
 ```
