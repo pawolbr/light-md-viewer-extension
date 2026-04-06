@@ -1,4 +1,4 @@
-# Light MD Viewer - Chrome Extension
+# <img src="icons/icon48.png" width="48" height="48"> Light MD Viewer - Chrome Extension
 
 A lightweight Chrome extension that renders Markdown files directly in the browser with syntax highlighting, mermaid diagrams, and a built-in editor.
 
