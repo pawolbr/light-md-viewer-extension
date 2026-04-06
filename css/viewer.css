@@ -287,6 +287,39 @@ body {
   background: #444;
 }
 
+/* CodeMirror 6 syntax token colors for light mode (GitHub Light palette) */
+/* Overrides defaultHighlightStyle injected by basicSetup */
+.cm-editor .tok-comment { color: #6a737d; font-style: italic; }
+.cm-editor .tok-keyword { color: #d73a49; }
+.cm-editor .tok-string { color: #032f62; }
+.cm-editor .tok-number,
+.cm-editor .tok-integer,
+.cm-editor .tok-float { color: #005cc5; }
+.cm-editor .tok-atom,
+.cm-editor .tok-bool { color: #005cc5; }
+.cm-editor .tok-url,
+.cm-editor .tok-link { color: #032f62; text-decoration: underline; }
+.cm-editor .tok-typeName,
+.cm-editor .tok-namespace,
+.cm-editor .tok-className { color: #6f42c1; }
+.cm-editor .tok-variableName { color: #005cc5; }
+.cm-editor .tok-propertyName { color: #005cc5; }
+.cm-editor .tok-meta { color: #005cc5; }
+.cm-editor .tok-contentSeparator,
+.cm-editor .tok-labelName { color: #005cc5; }
+.cm-editor .tok-heading { color: #005cc5; font-weight: bold; text-decoration: none; }
+.cm-editor .tok-heading1 { color: #d73a49; }
+.cm-editor .tok-heading2 { color: #005cc5; }
+.cm-editor .tok-heading3,
+.cm-editor .tok-heading4,
+.cm-editor .tok-heading5,
+.cm-editor .tok-heading6 { color: #6f42c1; }
+.cm-editor .tok-inserted { color: #22863a; }
+.cm-editor .tok-deleted { color: #b31d28; }
+.cm-editor .tok-regexp,
+.cm-editor .tok-escape { color: #e36209; }
+.cm-editor .tok-invalid { color: #b31d28; }
+
 /* ===== Dark mode ===== */
 body.dark {
   background: #1e1e1e;
