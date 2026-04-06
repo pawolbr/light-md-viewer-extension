@@ -3,6 +3,11 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'download') {
+    if (!sender || sender.id !== chrome.runtime.id) {
+      sendResponse({ ok: false, error: 'Unauthorized sender' });
+      return false;
+    }
+
     if (!message.url || typeof message.url !== 'string' || !message.url.startsWith('blob:')) {
       sendResponse({ ok: false, error: 'Invalid download URL' });
       return false;

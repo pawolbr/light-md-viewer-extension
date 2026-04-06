@@ -10,6 +10,7 @@
   var data = JSON.parse(dataEl.textContent);
   var rawMd = data.content;
   var currentFilename = data.filename;
+  var bridgeToken = data.bridgeToken;
 
   var savedContent = rawMd;
   var dirty = false;
@@ -414,10 +415,12 @@
     var content = getCurrentContent();
     var blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     var url = URL.createObjectURL(blob);
+    var requestId = String(Date.now()) + '-' + Math.random().toString(16).slice(2);
 
     function onResponse(event) {
       if (event.source !== window) return;
       if (!event.data || event.data.type !== '__light-md-download-response') return;
+      if (event.data.token !== bridgeToken || event.data.requestId !== requestId) return;
       window.removeEventListener('message', onResponse);
 
       var response = event.data.response;
@@ -438,6 +441,8 @@
     window.addEventListener('message', onResponse);
     window.postMessage({
       type: '__light-md-download',
+      token: bridgeToken,
+      requestId: requestId,
       url: url,
       filename: currentFilename
     }, '*');

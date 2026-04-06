@@ -18,12 +18,18 @@
   const pathParts = decodeURIComponent(url.pathname).split('/');
   const filename = pathParts.pop() || 'untitled.md';
   const folder = pathParts.join('/') || '/';
+  const bridgeToken = createBridgeToken();
 
   // Pass data to main world via a hidden DOM element (shared between isolated and main worlds)
   const dataEl = document.createElement('script');
   dataEl.type = 'application/json';
   dataEl.id = '__light-md-data';
-  dataEl.textContent = JSON.stringify({ content: rawMd, filename: filename, folder: folder });
+  dataEl.textContent = JSON.stringify({
+    content: rawMd,
+    filename: filename,
+    folder: folder,
+    bridgeToken: bridgeToken
+  });
 
   // Clear and rebuild the document
   document.title = filename + ' - Light MD Viewer';
@@ -112,6 +118,7 @@
   window.addEventListener('message', function (event) {
     if (event.source !== window) return;
     if (!event.data || event.data.type !== '__light-md-download') return;
+    if (event.data.token !== bridgeToken) return;
 
     chrome.runtime.sendMessage({
       action: 'download',
@@ -120,6 +127,8 @@
     }, function (response) {
       window.postMessage({
         type: '__light-md-download-response',
+        token: bridgeToken,
+        requestId: event.data.requestId,
         response: response || { ok: false, error: chrome.runtime.lastError && chrome.runtime.lastError.message }
       }, '*');
     });
@@ -145,5 +154,13 @@
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function createBridgeToken() {
+    var bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.prototype.map.call(bytes, function (b) {
+      return b.toString(16).padStart(2, '0');
+    }).join('');
   }
 })();
