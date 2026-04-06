@@ -9,6 +9,7 @@ import { keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
+import { syntaxHighlighting, classHighlighter } from '@codemirror/language';
 
 // Custom theme matching the original Light MD Viewer styling
 const lightMdTheme = EditorView.theme({
@@ -50,6 +51,7 @@ window.LightMDEditor = {
     const extensions = [
       basicSetup,
       markdown({ base: markdownLanguage, codeLanguages: languages }),
+      syntaxHighlighting(classHighlighter),
       EditorView.lineWrapping,
       lightMdTheme,
     ];
