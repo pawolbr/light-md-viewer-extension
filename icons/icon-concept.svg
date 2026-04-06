@@ -12,9 +12,19 @@
   </clipPath>
   <rect x="64" y="4" width="60" height="120" fill="#1e1e1e" clip-path="url(#rightCorner)"/>
 
-  <!-- Letter "m" on left (dark text on white) -->
-  <text x="34" y="84" font-family="'Segoe UI', 'SF Pro Display', Helvetica, Arial, sans-serif" font-size="62" font-weight="700" fill="#212121" text-anchor="middle" dominant-baseline="auto">m</text>
+  <!-- Letter "m" on left: rounded, elegant serif — the rendered view -->
+  <text x="34" y="84" font-family="'Georgia', 'Times New Roman', 'Palatino', serif" font-size="68" font-weight="400" font-style="italic" fill="#212121" text-anchor="middle" dominant-baseline="auto">m</text>
 
-  <!-- Letter "d" on right (accent blue on dark) -->
-  <text x="94" y="84" font-family="'Segoe UI', 'SF Pro Display', Helvetica, Arial, sans-serif" font-size="62" font-weight="700" fill="#4fc3f7" text-anchor="middle" dominant-baseline="auto">d</text>
+  <!-- Letter "d" on right: geometric/pixel-inspired path — the raw source -->
+  <!-- Built on a 6-col grid, sharp corners with only slight rounding (r=2) on the bowl -->
+  <g transform="translate(76, 36)" fill="#4fc3f7">
+    <!-- Vertical stem (right side, full height) -->
+    <rect x="28" y="0" width="8" height="52"/>
+    <!-- Bowl: top horizontal -->
+    <rect x="0" y="16" width="24" height="8" rx="2"/>
+    <!-- Bowl: bottom horizontal -->
+    <rect x="0" y="44" width="24" height="8" rx="2"/>
+    <!-- Bowl: left vertical -->
+    <rect x="0" y="28" width="8" height="24" rx="2"/>
+  </g>
 </svg>
