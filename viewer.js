@@ -296,6 +296,32 @@
     }
   });
 
+  // --- Image lightbox ---
+
+  function openLightbox(img) {
+    var overlay = document.createElement('div');
+    overlay.className = 'lightbox-overlay';
+    var clone = document.createElement('img');
+    clone.src = img.src;
+    clone.alt = img.alt;
+    overlay.appendChild(clone);
+
+    overlay.addEventListener('click', function () { overlay.remove(); });
+    document.addEventListener('keydown', function onKey(e) {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', onKey);
+      }
+    });
+
+    document.body.appendChild(overlay);
+  }
+
+  rendered.addEventListener('click', function (e) {
+    var img = e.target.closest('.rendered img');
+    if (img) openLightbox(img);
+  });
+
   // --- Live preview timer ---
 
   var splitTimer = null;

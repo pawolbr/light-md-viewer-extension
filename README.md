@@ -2,6 +2,8 @@
 
 A lightweight Chrome extension that renders Markdown files directly in the browser with syntax highlighting, mermaid diagrams, and a built-in editor.
 
+![screenshot](icons/demo.png)
+
 ## Features
 
 - **View mode** — clean, readable rendering of `.md` files with Material Design styling

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="120" height="120" rx="20" ry="20" fill="#ffffff" stroke="#e0e0e0" stroke-width="1"/>
+
+  <!-- Left half: white background (already white from rect above) -->
+  <!-- Right half: dark background -->
+  <clipPath id="rightHalf">
+    <rect x="64" y="4" width="60" height="120" rx="0" ry="0"/>
+  </clipPath>
+  <clipPath id="rightCorner">
+    <rect x="4" y="4" width="120" height="120" rx="20" ry="20"/>
+  </clipPath>
+  <rect x="64" y="4" width="60" height="120" fill="#1e1e1e" clip-path="url(#rightCorner)"/>
+
+  <!-- Letter "m" on left (dark text on white) -->
+  <text x="34" y="84" font-family="'Segoe UI', 'SF Pro Display', Helvetica, Arial, sans-serif" font-size="62" font-weight="700" fill="#212121" text-anchor="middle" dominant-baseline="auto">m</text>
+
+  <!-- Letter "d" on right (accent blue on dark) -->
+  <text x="94" y="84" font-family="'Segoe UI', 'SF Pro Display', Helvetica, Arial, sans-serif" font-size="62" font-weight="700" fill="#4fc3f7" text-anchor="middle" dominant-baseline="auto">d</text>
+</svg>
