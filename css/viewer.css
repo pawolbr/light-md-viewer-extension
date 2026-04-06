@@ -208,6 +208,31 @@ body {
   margin: 1.5em 0;
 }
 
+/* GFM task list checkboxes */
+.rendered input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #888;
+  border-radius: 3px;
+  background: #fff;
+  vertical-align: middle;
+  margin-right: 5px;
+  cursor: default;
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+}
+.rendered input[type="checkbox"]:checked {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
 /* Split view */
 .container.split-mode {
   display: grid;
@@ -349,6 +374,8 @@ body.dark .rendered th { background: #333; }
 body.dark .rendered tr:nth-child(even) { background: #2a2a2a; }
 body.dark .rendered a { color: #4fc3f7; }
 body.dark .rendered hr { border-top-color: #444; }
+body.dark .rendered input[type="checkbox"] { border-color: #888; background: #1e1e1e; }
+body.dark .rendered input[type="checkbox"]:checked { background: #388e3c; border-color: #388e3c; }
 
 body.dark .raw-view {
   background: #2d2d2d;
