@@ -38,9 +38,11 @@ _(Coming soon)_
 Open any `.md` or `.markdown` file in Chrome — it will render automatically.
 
 - **View / Edit / Split** — toggle between modes using the toolbar buttons
-- **Ctrl+S** (or Cmd+S on Mac) — download the edited file
+- **Ctrl+S** (or Cmd+S on Mac) — save the edited file to selected directory
+- **Download** - download file
 - **Copy MD** — copy raw markdown to clipboard (available in Edit/Split modes)
 - **Copy HTML** — copy rendered HTML to clipboard (available in Split mode)
+- **Dark/Light** - switch between Dark and Light display modes
 
 ## Development
 
