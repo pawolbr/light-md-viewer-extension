@@ -130,7 +130,7 @@
   // Initialize mermaid (guard against load failure)
   try {
     if (hasMermaid) {
-      mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default', securityLevel: 'strict' });
+      mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default', themeVariables: isDark ? { primaryTextColor: '#ffffff', lineColor: '#a0a0a0', edgeLabelBackground: '#2d2d2d', clusterBkg: '#333', clusterBorder: '#666', titleColor: '#d4d4d4' } : {}, securityLevel: 'strict' });
     }
   } catch (e) {
     console.error('Light MD Viewer: mermaid init failed:', e);
@@ -481,7 +481,7 @@
     btnDarkMode.textContent = dark ? 'Light' : 'Dark';
     localStorage.setItem('light-md-dark', dark ? '1' : '0');
     if (hasMermaid) {
-      mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict' });
+      mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', themeVariables: dark ? { primaryTextColor: '#ffffff', lineColor: '#a0a0a0', edgeLabelBackground: '#2d2d2d', clusterBkg: '#333', clusterBorder: '#666', titleColor: '#d4d4d4' } : {}, securityLevel: 'strict' });
       renderMermaid();
     }
   }
