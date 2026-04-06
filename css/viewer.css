@@ -375,7 +375,7 @@ body.dark .rendered tr:nth-child(even) { background: #2a2a2a; }
 body.dark .rendered a { color: #4fc3f7; }
 body.dark .rendered hr { border-top-color: #444; }
 body.dark .rendered input[type="checkbox"] { border-color: #888; background: #1e1e1e; }
-body.dark .rendered input[type="checkbox"]:checked { background: #388e3c; border-color: #388e3c; }
+body.dark .rendered input[type="checkbox"]:checked { background-color: #388e3c; border-color: #388e3c; }
 
 body.dark .raw-view {
   background: #2d2d2d;
