@@ -96,31 +96,38 @@
   // Initialize editor (CodeMirror 6 via LightMDEditor bundle)
   var editor = null;
   if (hasEditor) {
-    editor = LightMDEditor.create(
-      document.getElementById('editorHost'),
-      rawMd,
-      {
-        onChange: function (val) {
-          dirty = (val !== savedContent);
-          btnSave.disabled = !dirty;
-          if (dirty) {
-            saveStatus.textContent = 'Unsaved changes';
-            saveStatus.style.color = '#e65100';
-          } else {
-            saveStatus.textContent = '';
-          }
-          if (mode === 'split') {
-            clearTimeout(splitTimer);
-            splitTimer = setTimeout(function () {
-              rendered.innerHTML = renderMarkdown(editor.getValue());
-              renderMermaid();
-              adjustContainerWidth();
-            }, 300);
+    try {
+      editor = LightMDEditor.create(
+        document.getElementById('editorHost'),
+        rawMd,
+        {
+          onChange: function (val) {
+            dirty = (val !== savedContent);
+            btnSave.disabled = !dirty;
+            if (dirty) {
+              saveStatus.textContent = 'Unsaved changes';
+              saveStatus.style.color = '#e65100';
+            } else {
+              saveStatus.textContent = '';
+            }
+            if (mode === 'split') {
+              clearTimeout(splitTimer);
+              splitTimer = setTimeout(function () {
+                rendered.innerHTML = renderMarkdown(editor.getValue());
+                renderMermaid();
+                adjustContainerWidth();
+              }, 300);
+            }
           }
         }
-      }
-    );
-  } else {
+      );
+    } catch (e) {
+      console.error('Light MD Viewer: editor init failed:', e);
+      editor = null;
+      hasEditor = false;
+    }
+  }
+  if (!editor) {
     btnEdit.disabled = true;
     btnSplit.disabled = true;
     btnEdit.title = 'Editor unavailable';
@@ -185,8 +192,8 @@
         var value = attr.value.trim();
         var normalized = value.replace(/[\u0000-\u001F\u007F\s]+/g, '').toLowerCase();
 
-        // Strip event handlers
-        if (name.startsWith('on')) {
+        // Strip event handlers and inline styles
+        if (name.startsWith('on') || name === 'style') {
           node.removeAttribute(attr.name);
           return;
         }
@@ -246,7 +253,13 @@
       div.textContent = block.textContent;
       pre.replaceWith(div);
     });
-    mermaid.run();
+    try {
+      mermaid.run().catch(function (e) {
+        console.warn('Light MD Viewer: mermaid render error:', e);
+      });
+    } catch (e) {
+      console.warn('Light MD Viewer: mermaid run error:', e);
+    }
   }
 
   // --- Layout ---
@@ -307,13 +320,16 @@
     clone.alt = img.alt;
     overlay.appendChild(clone);
 
-    overlay.addEventListener('click', function () { overlay.remove(); });
-    document.addEventListener('keydown', function onKey(e) {
-      if (e.key === 'Escape') {
-        overlay.remove();
-        document.removeEventListener('keydown', onKey);
-      }
-    });
+    function closeLightbox() {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') closeLightbox();
+    }
+
+    overlay.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', onKey);
 
     document.body.appendChild(overlay);
   }
@@ -417,10 +433,19 @@
     var url = URL.createObjectURL(blob);
     var requestId = String(Date.now()) + '-' + Math.random().toString(16).slice(2);
 
+    // Safety timeout: clean up if response never arrives (e.g. service worker suspended)
+    var responseTimeout = setTimeout(function () {
+      window.removeEventListener('message', onResponse);
+      URL.revokeObjectURL(url);
+      saveStatus.textContent = 'Download timed out';
+      saveStatus.style.color = '#c62828';
+    }, 15000);
+
     function onResponse(event) {
       if (event.source !== window) return;
       if (!event.data || event.data.type !== '__light-md-download-response') return;
       if (event.data.token !== bridgeToken || event.data.requestId !== requestId) return;
+      clearTimeout(responseTimeout);
       window.removeEventListener('message', onResponse);
 
       var response = event.data.response;
@@ -482,7 +507,12 @@
     localStorage.setItem('light-md-dark', dark ? '1' : '0');
     if (hasMermaid) {
       mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', themeVariables: dark ? { primaryTextColor: '#ffffff', lineColor: '#a0a0a0', edgeLabelBackground: '#2d2d2d', clusterBkg: '#333', clusterBorder: '#666', titleColor: '#d4d4d4' } : {}, securityLevel: 'strict' });
+    }
+    // Re-render to get fresh mermaid source blocks (old SVGs can't be re-themed)
+    if (mode === 'view' || mode === 'split') {
+      rendered.innerHTML = renderMarkdown(getCurrentContent());
       renderMermaid();
+      adjustContainerWidth();
     }
   }
 
