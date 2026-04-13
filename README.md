@@ -55,7 +55,7 @@ Open any `.md` or `.markdown` file in Chrome — it will render automatically.
 
 ```cmd
 npm install            # install dependencies (0 audit vulnerabilities expected)
-npm run build:pin-hash          # bundle libraries and obtain mermaid via npm pack, print SHA-256 for pinning
+npm run build:pin-hash # bundle libraries and obtain mermaid via npm pack, print SHA-256 for pinning
 ```
 
 Build outputs go to `lib/` and `css/github-highlight.css`. These are gitignored and regenerated from source.
