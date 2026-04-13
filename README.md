@@ -26,7 +26,7 @@ _(Coming soon)_
 2. Install dependencies and build:
    ```cmd
    npm install
-   npm run build
+   npm run build:pin-hash
    ```
 3. Open `chrome://extensions/` in Chrome
 4. Enable **Developer mode** (top right toggle)
