@@ -15,22 +15,22 @@ _Last updated: 2026-04-03_
 
 All npm dependencies are bundled by esbuild into self-contained IIFE files under `lib/`.
 
-## CDN dependency (downloaded at build time)
+## npm pack dependency (obtained at build time)
 
 | Library | Version | Source | Bundle output |
 |---------|---------|--------|---------------|
-| mermaid | 11.4.1 | cdnjs.cloudflare.com | `lib/mermaid.min.js` |
+| mermaid | 11.4.1 | npm registry via `npm pack` | `lib/mermaid.min.js` |
 
-Mermaid is kept out of npm to avoid its transitive dependency chain (`chevrotain` -> `lodash-es`) which carries known vulnerabilities that don't affect runtime but would flag in `npm audit`. The pre-built dist file has no runtime dependency on `lodash-es`.
+Mermaid is obtained via `npm pack mermaid@VERSION` rather than `npm install` to avoid its transitive dependency chain (`chevrotain` -> `lodash-es`) which carries known vulnerabilities that don't affect runtime but would flag in `npm audit`. The `npm pack` command downloads only the published package tarball without resolving transitive dependencies. The pre-built `dist/mermaid.min.js` is extracted from the tarball and verified against a pinned SHA-256 hash.
 
-**Integrity verification:** `build.mjs` supports SHA-256 pinning via the `MERMAID_SHA256` constant. After the first download, pin the printed hash to verify subsequent downloads.
+**Integrity verification:** `build.mjs` enforces SHA-256 verification via the `MERMAID_SHA256` constant. The build will **fail** if this constant is null. Use `npm run build:pin-hash` to obtain the hash when updating mermaid.
 
 ## Build process
 
-```
-cmd
-npm install        # install npm dependencies (0 vulnerabilities expected)
-npm run build      # bundle CM6 + marked + hljs, download mermaid, copy CSS
+```cmd
+npm install            # install npm dependencies (0 audit vulnerabilities expected)
+npm run build          # bundle CM6 + marked + hljs, obtain mermaid via npm pack, copy CSS
+npm run build:pin-hash # download mermaid and print SHA-256 for pinning
 ```
 
 Build outputs (`lib/`, `css/github-highlight.css`) are gitignored and regenerated from source.
@@ -45,6 +45,9 @@ Build outputs (`lib/`, `css/github-highlight.css`) are gitignored and regenerate
 
 1. Update version in `package.json` (npm deps) or `MERMAID_VERSION` in `build.mjs`.
 2. Run `npm install && npm audit` — must show 0 vulnerabilities.
-3. Run `npm run build` (use `--force` flag to re-download mermaid).
-4. Pin the new mermaid SHA-256 hash in `build.mjs` if updated.
+3. For mermaid updates:
+   a. Set `MERMAID_SHA256 = null` in `build.mjs`.
+   b. Run `npm run build:pin-hash` to download and obtain the new hash.
+   c. Set `MERMAID_SHA256` to the printed hash in `build.mjs`.
+4. Run `npm run build` to verify the full build passes with the pinned hash.
 5. Verify: markdown render, code highlighting, mermaid diagrams, editor modes, download.

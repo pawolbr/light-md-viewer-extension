@@ -5,7 +5,8 @@
   "description": "Chrome extension for viewing and editing Markdown files",
   "scripts": {
     "build": "node build.mjs",
-    "build:watch": "node build.mjs --watch"
+    "build:watch": "node build.mjs --watch",
+    "build:pin-hash": "node build.mjs --pin-hash"
   },
   "dependencies": {
     "codemirror": "^6.0.1",
