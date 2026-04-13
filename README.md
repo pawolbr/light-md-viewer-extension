@@ -54,8 +54,9 @@ Open any `.md` or `.markdown` file in Chrome — it will render automatically.
 ### Build
 
 ```cmd
-npm install        # install dependencies (0 audit vulnerabilities expected)
-npm run build      # bundle libraries and download mermaid
+npm install            # install dependencies (0 audit vulnerabilities expected)
+npm run build          # bundle libraries and obtain mermaid via npm pack
+npm run build:pin-hash # obtain mermaid and print SHA-256 for pinning
 ```
 
 Build outputs go to `lib/` and `css/github-highlight.css`. These are gitignored and regenerated from source.
@@ -80,7 +81,7 @@ src/
   editor.js            CodeMirror 6 editor bundle source
   marked-global.js     marked.js browser global wrapper
   hljs-global.js       highlight.js browser global wrapper
-build.mjs              Build script (esbuild + mermaid CDN download)
+build.mjs              Build script (esbuild + mermaid via npm pack)
 ```
 
 ### Updating dependencies
