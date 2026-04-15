@@ -27,7 +27,7 @@ const isPinHash = process.argv.includes('--pin-hash');
 // Mermaid version and integrity hash (update both when upgrading)
 // To pin: run "npm run build:pin-hash", then paste the printed hash here.
 const MERMAID_VERSION = '11.4.1';
-const MERMAID_SHA256 = null; // MUST be pinned before production builds
+const MERMAID_SHA256 = 'a43bc1afd446f9c4cc66ac5dd45d02e8d65e26fc5344ec0ef787f88d6ddb6f9e'; // MUST be pinned before production builds
 
 // Ensure output directories exist
 ['lib', 'css'].forEach(dir => {
